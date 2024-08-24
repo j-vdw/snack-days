@@ -78,7 +78,7 @@ def find_date(snack_dates, name, index, delta=1, max_delta=6):
       snack_dates = find_date(snack_dates, name, index, delta + 1)
    return snack_dates
 
-def generate_snack_calendar(bdays, school_year, all_saints, winter, spring, easter, homedays):
+def generate_snack_calendar(bdays, school_year, all_saints, winter, spring, easter, pub_hdays, ped_days):
 
    bdays_in_summer = 0
    bdays.sort() # sorting occurs on first element of tuple
@@ -118,17 +118,17 @@ def generate_snack_calendar(bdays, school_year, all_saints, winter, spring, east
    vacation = [(date.fromisoformat(easter[0]) + timedelta(days=i)).isoformat() for i in range((date.fromisoformat(easter[1]) - date.fromisoformat(easter[0])).days + 1)]
    date_range = move_bdays(date_range, vacation)
    count_occurence(date_range)
-   logging.info('checking weekends and homedays')
-   # weekends/homedays are removed by creating a new date_range list and only adding valid schooldays.
+   logging.info('checking weekends, public holidays and pedagogic days')
+   # weekends/public holidays/pedagogic days are removed by creating a new date_range list and only adding valid schooldays.
    # while constructing the new list, birthdays in weekend/homeday are moved
    date_range_new = []
    names_to_move = []
    for i, date_tuple in enumerate(reversed(date_range)):
       day_index = date.fromisoformat(date_tuple[0]).weekday()
       # logging.info('checking ' + date_tuple[0])
-      if (day_index in [5,6]) or (date_tuple[0] in homedays):
+      if (day_index in [5,6]) or (date_tuple[0] in pub_hdays) or (date_tuple[0] in ped_days):
          if date_tuple[1]: # if a bday is in the weekend, move it before. 2 bdays in a weekend not yet handled
-            logging.debug("weekend/homedays: found: " + date_tuple[1])
+            logging.debug("weekend/public holiday/pedagogic day found: " + date_tuple[1])
             names_to_move = names_to_move + [date_tuple[1]]
       else:
          if len(names_to_move):
@@ -257,15 +257,16 @@ if __name__ == "__main__":
                                                                                 ('2025-06-24', 'Eee'), \
                                                                                 ('2025-02-09', 'Aaa'), \
                                                                                 ('2025-05-16', 'Ccc')])
-  parser.add_option("--homedays", help = "list of non-weekend and non-vacation days where there is no school. ex: ['2021-07-18', '2021-11-13']", \
+  parser.add_option("--pub_hdays", help = "list of public holidays where there is no school. ex: ['2021-07-18', '2021-11-13']", \
                                                                      default = ['2024-09-27', \
                                                                                 '2024-11-11', \
-                                                                                '2024-11-15', \
-                                                                                '2025-01-20', \
                                                                                 '2025-04-21', \
-                                                                                '2025-04-22', \
                                                                                 '2025-05-29', \
                                                                                 '2025-06-09'])
+  parser.add_option("--ped_days", help = "list of pedagogic days where there is no school. ex: ['2021-07-18', '2021-11-13']", \
+                                                                     default = ['2024-11-15', \
+                                                                                '2025-01-20', \
+                                                                                '2025-04-22'])
   parser.add_option('--school_year', help = "first and last date of schoolyear. ex: ['2022-08-29', '2024-07-07']", default = ['2024-08-26', '2025-07-04'])
   parser.add_option('--all_saints', help = "first and last date of all saints holiday. ex: ['2022-10-22', '2022-11-06']", default = ['2024-10-19', '2024-11-03'])
   parser.add_option('--winter', help = "first and last date of winter holiday. ex: ['2022-12-24', '2024-01-08']", default = ['2024-12-21', '2025-01-05'])
@@ -288,7 +289,7 @@ if __name__ == "__main__":
      logging_level=logging.ERROR
   logging.basicConfig(level = logging_level)
 
-  generate_snack_calendar(options.bdays, options.school_year, options.all_saints, options.winter, options.spring, options.easter, options.homedays)
+  generate_snack_calendar(options.bdays, options.school_year, options.all_saints, options.winter, options.spring, options.easter, options.pub_hdays, options.ped_days)
 
 
 
