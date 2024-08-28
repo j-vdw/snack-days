@@ -6,6 +6,7 @@ Copyright (c) 2024 Jorgen Vandewoestijne. All Rights reserved
 
 import optparse
 from datetime import date, timedelta
+import calendar
 from math import ceil
 import logging
 
@@ -123,19 +124,24 @@ def generate_snack_calendar(bdays, school_year, all_saints, winter, spring, east
    # while constructing the new list, birthdays in weekend/homeday are moved
    date_range_new = []
    names_to_move = []
+   # Also compute half days for the register. Large holidays have been removed but
+   half_days = [[0, 0] for i in range(12)]
    for i, date_tuple in enumerate(reversed(date_range)):
       day_index = date.fromisoformat(date_tuple[0]).weekday()
-      # logging.info('checking ' + date_tuple[0])
+      month_index = date.fromisoformat(date_tuple[0]).month - 1
       if (day_index in [5,6]) or (date_tuple[0] in pub_hdays) or (date_tuple[0] in ped_days):
-         if date_tuple[1]: # if a bday is in the weekend, move it before. 2 bdays in a weekend not yet handled
+         if date_tuple[1]: # if a bday is in the weekend, move it before.
             logging.debug("weekend/public holiday/pedagogic day found: " + date_tuple[1])
             names_to_move = names_to_move + [date_tuple[1]]
+         if (date_tuple[0] in ped_days):
+            half_days[month_index][1] += 1 if day_index == 2 else 2
       else:
          if len(names_to_move):
             if not(date_tuple[1]):
                date_tuple = (date_tuple[0], names_to_move.pop(0))
          logging.debug(str(date_tuple) + " is placed on index " + str(day_index))
          date_range_new = [date_tuple] + date_range_new
+         half_days[month_index][0] += 1 if day_index == 2 else 2
    date_range = date_range_new.copy()
    count_occurence(date_range)
    logging.info("step 3:")
@@ -229,6 +235,13 @@ def generate_snack_calendar(bdays, school_year, all_saints, winter, spring, east
       for days in date_range:
          f.write(days[0] + ": " + ("None" if days[1] == None else days[1]) + "\n")
    reworked_result = count_occurence(date_range)
+   format_string = "{:<12}{:>5}{:>5}"
+   with open('half_days.auto.txt','w') as f:
+      f.write(format_string.format("month", "norm", "ped\n"))
+      for month, half_day_month in enumerate(half_days[7:]):
+         f.write(format_string.format(calendar.month_name[month + 8] + " :", str(half_day_month[0]), str(half_day_month[1]) + "\n"))
+      for month, half_day_month in  enumerate(half_days[:7]):
+         f.write(format_string.format(calendar.month_name[month + 1] + " :", str(half_day_month[0]), str(half_day_month[1]) + "\n"))
 
 if __name__ == "__main__":
   # Parse command line arguments
